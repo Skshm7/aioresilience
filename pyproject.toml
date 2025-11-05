@@ -8,8 +8,7 @@ version = "0.1.0"
 description = "Async resilience patterns for Python - Circuit breakers, rate limiting, and more"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.9"
-license = "MIT"
-license-files = ["LICENSE"]
+license = {file = "LICENSE"}
 authors = [
     {name = "xonming", email = "xonming@users.noreply.github.com"}
 ]
@@ -17,7 +16,6 @@ keywords = ["async", "asyncio", "resilience", "circuit-breaker", "rate-limiting"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
