@@ -1,13 +1,8 @@
 # aioresilience - Fault Tolerance Library for Asyncio
 
 [![CI/CD](https://github.com/xonming/aioresilience/actions/workflows/ci.yml/badge.svg)](https://github.com/xonming/aioresilience/actions/workflows/ci.yml)
-[![Tests](https://github.com/xonming/aioresilience/actions/workflows/tests.yml/badge.svg)](https://github.com/xonming/aioresilience/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-85.8%25-brightgreen)](https://github.com/xonming/aioresilience/actions/workflows/coverage.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-310%20total-brightgreen)](./tests)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Type Hints](https://img.shields.io/badge/type__hints-PEP%20484-brightgreen.svg)](https://www.python.org/dev/peps/pep-0484/)
-[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Introduction
 
@@ -72,7 +67,6 @@ result = await circuit.call(call_external_api)
 - **Composable** - Stack multiple patterns on any function
 - **Framework Integrations** - FastAPI, Sanic, aiohttp middleware
 - **Optional Dependencies** - Use only what you need
-- **Battle-Tested** - 310+ tests with 85%+ coverage
 
 ## Documentation
 
