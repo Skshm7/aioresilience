@@ -17,7 +17,7 @@ Core Features (No Optional Dependencies):
 Optional Features (Require Installation):
 - System Load Shedding - CPU/memory monitoring (requires psutil)
 - Distributed Rate Limiting - Redis-backed (requires redis)
-- Framework Integrations - FastAPI, Flask, etc.
+- Framework Integrations - FastAPI, aiohttp, Sanic
 
 Usage:
     # Core (always available)

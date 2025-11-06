@@ -9,6 +9,8 @@ Dependencies: None (pure Python async)
 import asyncio
 import logging
 
+from .events import EventEmitter, PatternType, EventType, LoadShedderEvent
+
 logger = logging.getLogger(__name__)
 
 
@@ -72,6 +74,9 @@ class AdaptiveConcurrencyLimiter:
         self.total_requests = 0
         
         self._lock = asyncio.Lock()
+        
+        # Event emitter for monitoring
+        self.events = EventEmitter(pattern_name=f"adaptive-concurrency-{id(self)}")
     
     async def acquire(self) -> bool:
         """
@@ -104,11 +109,11 @@ class AdaptiveConcurrencyLimiter:
             
             # Adjust limit every measurement_window requests
             if (self.success_count + self.failure_count) >= self.measurement_window:
-                self._adjust_limit()
+                await self._adjust_limit()
                 self.success_count = 0
                 self.failure_count = 0
     
-    def _adjust_limit(self):
+    async def _adjust_limit(self):
         """Adjust concurrency limit using AIMD algorithm"""
         total = self.success_count + self.failure_count
         success_rate = self.success_count / total if total > 0 else 0
@@ -122,6 +127,17 @@ class AdaptiveConcurrencyLimiter:
             )
             if old_limit != self.current_limit:
                 logger.info(f"Concurrency limit increased: {old_limit} → {self.current_limit}")
+                
+                # Emit limit change event
+                await self.events.emit(LoadShedderEvent(
+                    pattern_type=PatternType.ADAPTIVE_CONCURRENCY,
+                    event_type=EventType.LOAD_LEVEL_CHANGE,
+                    pattern_name=self.events.pattern_name,
+                    active_requests=self.active_count,
+                    max_requests=int(self.current_limit),
+                    load_level=f"increased:{old_limit}->{self.current_limit}",
+                    reason=f"High success rate: {success_rate:.2%}",
+                ))
         
         elif success_rate < 0.80:
             # Low success rate: decrease limit (multiplicative)
@@ -132,6 +148,17 @@ class AdaptiveConcurrencyLimiter:
             )
             if old_limit != self.current_limit:
                 logger.warning(f"Concurrency limit decreased: {old_limit} → {self.current_limit}")
+                
+                # Emit limit change event
+                await self.events.emit(LoadShedderEvent(
+                    pattern_type=PatternType.ADAPTIVE_CONCURRENCY,
+                    event_type=EventType.LOAD_LEVEL_CHANGE,
+                    pattern_name=self.events.pattern_name,
+                    active_requests=self.active_count,
+                    max_requests=int(self.current_limit),
+                    load_level=f"decreased:{old_limit}->{self.current_limit}",
+                    reason=f"Low success rate: {success_rate:.2%}",
+                ))
     
     def get_stats(self) -> dict:
         """Get limiter statistics"""

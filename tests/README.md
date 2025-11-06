@@ -1,6 +1,6 @@
 # Test Suite Organization
 
-**Coverage: 87.6%+** | **309 Tests Passing** | **1 Skip** (Optional Dependency)
+**Coverage: 85.8%** | **310 Tests**
 
 ## Test Structure
 
@@ -15,7 +15,9 @@ tests/
 │   ├── test_backpressure.py
 │   ├── test_adaptive_concurrency.py
 │   ├── test_rate_limiting.py
-│   └── test_load_shedding.py
+│   ├── test_load_shedding.py
+│   ├── test_events.py                      # Event system unit tests
+│   └── test_events_comprehensive.py        # Event system edge cases
 │
 ├── mocked/                         # Tests with mocked dependencies
 │   ├── test_redis_rate_limiting.py
@@ -23,6 +25,8 @@ tests/
 │
 ├── integration/                    # Integration tests
 │   ├── test_pattern_combinations.py
+│   ├── test_circuit_breaker_events.py       # Circuit breaker event integration
+│   ├── test_pattern_events.py               # All pattern event emissions
 │   ├── test_fastapi_integration.py
 │   ├── test_sanic_integration.py
 │   └── test_aiohttp_integration.py

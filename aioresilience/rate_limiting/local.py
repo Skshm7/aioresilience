@@ -15,6 +15,8 @@ from collections import OrderedDict
 from aiolimiter import AsyncLimiter
 import logging
 
+from ..events import EventEmitter, PatternType, EventType, RateLimitEvent
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,6 +56,9 @@ class LocalRateLimiter:
         self.limiters: OrderedDict[str, AsyncLimiter] = OrderedDict()
         self.logger = logger
         self._lock = asyncio.Lock()
+        
+        # Event emitter for monitoring
+        self.events = EventEmitter(pattern_name=name)
     
     async def get_limiter(self, key: str, rate: str) -> AsyncLimiter:
         """
@@ -132,9 +137,29 @@ class LocalRateLimiter:
             if limiter.has_capacity():
                 await limiter.acquire()
                 self.logger.debug(f"Rate limit check passed for {key}: {rate}")
+                
+                # Emit request allowed event
+                await self.events.emit(RateLimitEvent(
+                    pattern_type=PatternType.RATE_LIMITER,
+                    event_type=EventType.REQUEST_ALLOWED,
+                    pattern_name=self.name,
+                    user_id=key,
+                    limit=rate,
+                ))
+                
                 return True
             else:
                 self.logger.warning(f"Rate limit exceeded for {key}: {rate}")
+                
+                # Emit request rejected event
+                await self.events.emit(RateLimitEvent(
+                    pattern_type=PatternType.RATE_LIMITER,
+                    event_type=EventType.REQUEST_REJECTED,
+                    pattern_name=self.name,
+                    user_id=key,
+                    limit=rate,
+                ))
+                
                 return False
                 
         except Exception as e:

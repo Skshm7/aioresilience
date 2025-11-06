@@ -7,6 +7,7 @@ starlette>=0.27.0
 
 # Sanic
 sanic>=23.0.0
+sanic-testing>=23.3.0
 
 # aiohttp
 aiohttp>=3.8.0

@@ -17,11 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prometheus metrics exporter
 - OpenTelemetry integration
 
-## [0.1.0] - 2025-11-05
+## [0.1.0] - 2025-11-06
 
 ### Added
 
 #### Core Features
+
+- **Event System** [NEW]
+  - Comprehensive event-driven observability for all resilience patterns
+  - Local event handlers via `EventEmitter` per pattern instance
+  - Global event bus for centralized monitoring across all patterns
+  - Wildcard handlers (`"*"`) to capture all events
+  - Thread-safe async event emission with `asyncio.gather`
+  - Rich event types: `CircuitBreakerEvent`, `RetryEvent`, `TimeoutEvent`, `FallbackEvent`, `BulkheadEvent`, `RateLimitEvent`, `LoadShedderEvent`
+  - Event data includes timestamps, pattern state, metadata, and context
+  - Decorator syntax for handler registration: `@circuit.events.on("state_change")`
+  - 57 comprehensive tests with 92% coverage on event system
+  - Example file: `examples/events_example.py`
+
 - **Circuit Breaker Pattern**
   - Async-first implementation with CLOSED, OPEN, and HALF_OPEN states
   - Automatic failure detection and recovery

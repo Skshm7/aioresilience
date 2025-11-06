@@ -45,7 +45,7 @@ jobs:
         pip install -r requirements-dev.txt
         pip install pytest-cov
         # Install optional dependencies for mocked and integration tests
-        pip install redis psutil aiohttp sanic fastapi httpx
+        pip install redis psutil aiohttp sanic sanic-testing fastapi httpx
     
     - name: Lint with flake8
       run: |

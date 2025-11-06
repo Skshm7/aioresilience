@@ -11,6 +11,8 @@ from typing import Optional, Callable, Any
 from functools import wraps
 import logging
 
+from .events import EventEmitter, PatternType, EventType, LoadShedderEvent
+
 logger = logging.getLogger(__name__)
 
 
@@ -65,6 +67,9 @@ class BackpressureManager:
         self._lock = asyncio.Lock()
         self._resume_event = asyncio.Event()
         self._resume_event.set()  # Initially not blocked
+        
+        # Event emitter for monitoring
+        self.events = EventEmitter(pattern_name=f"backpressure-{id(self)}")
     
     @property
     def is_overloaded(self) -> bool:
@@ -112,6 +117,17 @@ class BackpressureManager:
                 self.backpressure_active = True
                 self._resume_event.clear()
                 logger.warning(f"Backpressure ACTIVE: {self.pending_count}/{self.high_water_mark}")
+                
+                # Emit backpressure threshold exceeded event
+                await self.events.emit(LoadShedderEvent(
+                    pattern_type=PatternType.BACKPRESSURE,
+                    event_type=EventType.THRESHOLD_EXCEEDED,
+                    pattern_name=self.events.pattern_name,
+                    active_requests=self.pending_count,
+                    max_requests=self.max_pending,
+                    load_level="high",
+                    reason=f"High water mark exceeded: {self.pending_count}/{self.high_water_mark}",
+                ))
         
         return True
     
@@ -125,6 +141,17 @@ class BackpressureManager:
                 self.backpressure_active = False
                 self._resume_event.set()
                 logger.info(f"Backpressure INACTIVE: {self.pending_count}/{self.low_water_mark}")
+                
+                # Emit backpressure load level change event
+                await self.events.emit(LoadShedderEvent(
+                    pattern_type=PatternType.BACKPRESSURE,
+                    event_type=EventType.LOAD_LEVEL_CHANGE,
+                    pattern_name=self.events.pattern_name,
+                    active_requests=self.pending_count,
+                    max_requests=self.max_pending,
+                    load_level="normal",
+                    reason=f"Low water mark reached: {self.pending_count}/{self.low_water_mark}",
+                ))
     
     def get_stats(self) -> dict:
         """Get backpressure statistics"""

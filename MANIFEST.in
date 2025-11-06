@@ -11,6 +11,7 @@ include aioresilience/py.typed
 
 # Exclude test files and caches
 recursive-exclude tests *
+recursive-exclude aioresilience/tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 exclude .gitignore

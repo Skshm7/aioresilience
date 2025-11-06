@@ -36,7 +36,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .
         pip install pytest pytest-asyncio pytest-cov pytest-timeout
-        pip install redis psutil aiohttp sanic fastapi httpx  # For mocked and integration tests
+        pip install redis psutil aiohttp sanic sanic-testing fastapi httpx  # For mocked and integration tests
     
     - name: Run tests
       run: |

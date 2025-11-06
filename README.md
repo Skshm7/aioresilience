@@ -2,9 +2,9 @@
 
 [![CI/CD](https://github.com/xonming/aioresilience/actions/workflows/ci.yml/badge.svg)](https://github.com/xonming/aioresilience/actions/workflows/ci.yml)
 [![Tests](https://github.com/xonming/aioresilience/actions/workflows/tests.yml/badge.svg)](https://github.com/xonming/aioresilience/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-87.6%25-brightgreen)](https://github.com/xonming/aioresilience/actions/workflows/coverage.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-309%20passing-brightgreen)](./tests)
+[![Coverage](https://img.shields.io/badge/coverage-85.8%25-brightgreen)](https://github.com/xonming/aioresilience/actions/workflows/coverage.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Tests](https://img.shields.io/badge/tests-310%20total-brightgreen)](./tests)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Type Hints](https://img.shields.io/badge/type__hints-PEP%20484-brightgreen.svg)](https://www.python.org/dev/peps/pep-0484/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -60,6 +60,18 @@ result = await circuit.call(backend_call)
 
 > **Note:** With aioresilience you don't have to go all-in, you can [**pick what you need**](https://pypi.org/project/aioresilience/).
 
+## Features
+
+- **9 Resilience Patterns** - Circuit Breaker, Retry, Timeout, Bulkhead, Fallback, Rate Limiter, Load Shedder, Backpressure, Adaptive Concurrency
+- **Event System** - Comprehensive observability with local and global event handlers
+- **Async-First** - Built for asyncio from the ground up
+- **Decorator & Context Manager** - Flexible API styles
+- **Type Hints** - Full PEP 484 type annotations
+- **Composable** - Stack multiple patterns on any function
+- **Framework Integrations** - FastAPI, Sanic, aiohttp middleware
+- **Optional Dependencies** - Use only what you need
+- **Battle-Tested** - 310+ tests with 85%+ coverage
+
 ## Documentation
 
 Complete documentation is available in this README and through Python docstrings.
@@ -96,17 +108,18 @@ pip install aioresilience[all]
 
 ## Overview
 
-aioresilience provides several core modules:
+aioresilience provides the following resilience patterns:
 
-* **aioresilience-circuitbreaker**: Circuit breaking with state management
-* **aioresilience-ratelimiter**: Rate limiting (local and distributed)
-* **aioresilience-loadshedding**: Load shedding (basic and system-aware)
-* **aioresilience-backpressure**: Backpressure management with water marks
-* **aioresilience-adaptive**: Adaptive concurrency limiting with AIMD algorithm
-* **aioresilience-retry**: Retry with exponential/linear/constant backoff
-* **aioresilience-timeout**: Timeout and deadline management
-* **aioresilience-bulkhead**: Resource isolation and concurrency limiting
-* **aioresilience-fallback**: Graceful degradation with fallback values
+* **Circuit Breaker** - Circuit breaking with state management
+* **Rate Limiter** - Rate limiting (local and distributed)
+* **Load Shedder** - Load shedding (basic and system-aware)
+* **Backpressure Manager** - Backpressure management with water marks
+* **Adaptive Concurrency Limiter** - Adaptive concurrency limiting with AIMD algorithm
+* **Retry Policy** - Retry with exponential/linear/constant backoff
+* **Timeout Manager** - Timeout and deadline management
+* **Bulkhead** - Resource isolation and concurrency limiting
+* **Fallback Handler** - Graceful degradation with fallback values
+* **Event System** - Local and global event handlers for observability
 
 ### Framework Integrations
 
@@ -137,6 +150,45 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for detailed integration guides.
 | **Adaptive Concurrency** | Auto-adjusts concurrency limits | Dynamically adjust concurrency based on success rate using AIMD algorithm. Similar to TCP congestion control - additive increase, multiplicative decrease. |
 
 *Above table is inspired by [Polly: resilience policies](https://github.com/App-vNext/Polly#resilience-policies) and [resilience4j](https://github.com/resilience4j/resilience4j).*
+
+## Event System
+
+aioresilience includes a comprehensive event system for monitoring and observability. All resilience patterns emit events that you can subscribe to:
+
+**Key Features:**
+- **Local Handlers** - Subscribe to events from specific pattern instances
+- **Global Event Bus** - Centralized event handling across all patterns
+- **Wildcard Subscriptions** - Listen to all events with `"*"` handlers
+- **Thread-Safe** - Safe for concurrent async operations
+- **Rich Event Data** - Detailed context including timestamps, pattern state, and metadata
+
+**Event Types:**
+- Circuit Breaker: `STATE_CHANGE`, `CALL_SUCCESS`, `CALL_FAILURE`, `CIRCUIT_RESET`
+- Retry: `RETRY_ATTEMPT`, `RETRY_SUCCESS`, `RETRY_EXHAUSTED`
+- Timeout: `TIMEOUT_SUCCESS`, `TIMEOUT_OCCURRED`
+- Fallback: `PRIMARY_FAILED`, `FALLBACK_EXECUTED`
+- Bulkhead: `SLOT_ACQUIRED`, `SLOT_RELEASED`, `BULKHEAD_FULL`
+- Rate Limiter: `REQUEST_ALLOWED`, `REQUEST_REJECTED`
+- Load Shedder: `REQUEST_ACCEPTED`, `REQUEST_SHED`, `THRESHOLD_EXCEEDED`
+
+**Example:**
+```python
+from aioresilience import CircuitBreaker, global_bus
+
+# Local event handler
+circuit = CircuitBreaker(name="api")
+
+@circuit.events.on("state_change")
+async def on_state_change(event):
+    print(f"Circuit {event.pattern_name}: {event.old_state} → {event.new_state}")
+
+# Global event bus
+@global_bus.on("*")
+async def log_all_events(event):
+    print(f"{event.pattern_type}: {event.event_type} from {event.pattern_name}")
+```
+
+See [examples/events_example.py](examples/events_example.py) for complete examples.
 
 ## Usage Examples
 
@@ -544,7 +596,7 @@ async def fetch_data():
         return response.json()
 
 # Convenience function for one-off timeouts
-result = await with_timeout(fetch_data(), 5.0)
+result = await with_timeout(fetch_data, 5.0)
 ```
 
 #### Deadline Management
@@ -890,6 +942,11 @@ aioresilience follows a modular architecture with minimal required dependencies:
 ```
 aioresilience/
 ├── __init__.py                  # Main exports
+├── events/                      # Event system (no dependencies)
+│   ├── __init__.py
+│   ├── emitter.py              # Local event handlers per pattern
+│   ├── bus.py                  # Global event bus
+│   └── types.py                # Event types and dataclasses
 ├── circuit_breaker.py           # Circuit breaker pattern (no dependencies)
 ├── retry.py                     # Retry with backoff strategies (no dependencies)
 ├── timeout.py                   # Timeout and deadline management (no dependencies)
@@ -951,18 +1008,18 @@ aioresilience/
 
 | Feature | aioresilience | pybreaker | circuitbreaker |
 |---------|--------------|-----------|----------------|
-| Async-native | ✓ | ✗ | ✗ |
-| Type hints | ✓ | Partial | ✗ |
-| Circuit breaker | ✓ | ✓ | ✓ |
-| Retry with backoff | ✓ | ✗ | ✗ |
-| Timeout/Deadline | ✓ | ✗ | ✗ |
-| Bulkhead | ✓ | ✗ | ✗ |
-| Fallback | ✓ | ✗ | ✗ |
-| Rate limiting | ✓ | ✗ | ✗ |
-| Load shedding | ✓ | ✗ | ✗ |
-| Backpressure | ✓ | ✗ | ✗ |
-| Modular design | ✓ | ✗ | ✗ |
-| Metrics & monitoring | ✓ | Basic | Basic |
+| Async-native | Yes | No | No |
+| Type hints | Yes | Partial | No |
+| Circuit breaker | Yes | Yes | Yes |
+| Retry with backoff | Yes | No | No |
+| Timeout/Deadline | Yes | No | No |
+| Bulkhead | Yes | No | No |
+| Fallback | Yes | No | No |
+| Rate limiting | Yes | No | No |
+| Load shedding | Yes | No | No |
+| Backpressure | Yes | No | No |
+| Modular design | Yes | No | No |
+| Metrics & monitoring | Yes | Basic | Basic |
 
 ## Performance
 
@@ -985,29 +1042,30 @@ Overhead measurements on a typical development machine:
 ## Roadmap
 
 ### Completed in v0.1.0
-- [x] Circuit Breaker pattern
-- [x] Retry policies with exponential backoff and jitter
-- [x] Bulkhead pattern for resource isolation
-- [x] Time limiters with timeout and deadline support
-- [x] Fallback mechanisms with chained fallbacks
-- [x] Rate limiting (local and distributed)
-- [x] Load shedding (basic and system-aware)
-- [x] Backpressure management
-- [x] Adaptive concurrency limiting
-- [x] FastAPI integration with modular middleware
-- [x] Sanic integration
-- [x] aiohttp integration
+* Circuit Breaker pattern
+* Retry policies with exponential backoff and jitter
+* Bulkhead pattern for resource isolation
+* Time limiters with timeout and deadline support
+* Fallback mechanisms with chained fallbacks
+* Rate limiting (local and distributed)
+* Load shedding (basic and system-aware)
+* Backpressure management
+* Adaptive concurrency limiting
+* Event system with local and global handlers
+* FastAPI integration with modular middleware
+* Sanic integration
+* aiohttp integration
 
 ### Planned for Future Releases
-- [ ] Cache pattern with TTL and invalidation
-- [ ] Request deduplication
-- [ ] Prometheus metrics exporter
-- [ ] OpenTelemetry integration
-- [ ] Grafana dashboard templates
-- [ ] Enhanced event streaming
-- [ ] WebSocket support
-- [ ] HTTP client wrapper with built-in resilience
-- [ ] gRPC interceptors
+* Cache pattern with TTL and invalidation
+* Request deduplication
+* Prometheus metrics exporter
+* OpenTelemetry integration
+* Grafana dashboard templates
+* Enhanced event streaming
+* WebSocket support
+* HTTP client wrapper with built-in resilience
+* gRPC interceptors
 
 ## Contributing
 
@@ -1055,7 +1113,7 @@ flake8 aioresilience
 pytest
 
 # Run specific test file
-pytest tests/test_circuit_breaker.py
+pytest tests/unit/test_circuit_breaker.py
 
 # Run with verbose output
 pytest -v
@@ -1092,4 +1150,4 @@ Special thanks to:
 
 ---
 
-**Built with ❤️ for the Python asyncio community**
+**Built for the Python asyncio community**
