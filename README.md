@@ -1,7 +1,8 @@
 # aioresilience - Fault Tolerance Library for Asyncio
 
+[![PyPI version](https://badge.fury.io/py/aioresilience.svg)](https://badge.fury.io/py/aioresilience)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/aioresilience)](https://pypi.org/project/aioresilience/)
 [![CI/CD](https://github.com/xonming/aioresilience/actions/workflows/ci.yml/badge.svg)](https://github.com/xonming/aioresilience/actions/workflows/ci.yml)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Introduction
