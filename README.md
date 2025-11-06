@@ -479,6 +479,45 @@ await rate_limiter.close()
 
 > **Note:** Redis rate limiter uses a sliding window algorithm with sorted sets for accurate distributed rate limiting.
 
+<details>
+<summary><b>🔍 Monitoring Rate Limits</b></summary>
+
+**Event-Driven Monitoring**
+
+Track rate limit violations and allowed requests:
+
+```python
+from aioresilience import RateLimiter
+
+rate_limiter = RateLimiter(name="api")
+
+# Monitor allowed requests
+@rate_limiter.events.on("rate_limit_passed")
+async def on_passed(event):
+    print(f"✅ Request allowed for key: {event.metadata['key']}")
+    print(f"Rate: {event.metadata['rate']}")
+
+# Alert on rate limit violations
+@rate_limiter.events.on("rate_limit_exceeded")
+async def on_exceeded(event):
+    key = event.metadata['key']
+    rate = event.metadata['rate']
+    print(f"⚠️ Rate limit exceeded for {key} (limit: {rate})")
+    # Track abusive users
+    await track_rate_limit_violation(key)
+```
+
+**Polling Metrics**
+
+```python
+# For dashboards
+stats = rate_limiter.get_stats()
+print(f"Active limiters: {stats['active_limiters']}")
+print(f"Total checks: {stats['total_checks']}")
+```
+
+</details>
+
 ### Load Shedding
 
 There are two load shedding implementations.
@@ -550,6 +589,46 @@ if await load_shedder.acquire(priority="high"):
 
 > **Note:** SystemLoadShedder requires the `psutil` package. Install with `pip install aioresilience[system]`.
 
+<details>
+<summary><b>🔍 Monitoring Load Shedding</b></summary>
+
+**Event-Driven Monitoring**
+
+Track accepted and rejected requests:
+
+```python
+from aioresilience import LoadShedder
+
+load_shedder = LoadShedder(max_requests=1000)
+
+# Monitor accepted requests
+@load_shedder.events.on("request_accepted")
+async def on_accepted(event):
+    active = event.metadata['active_requests']
+    max_requests = event.metadata['max_requests']
+    print(f"✅ Request accepted ({active}/{max_requests} active)")
+
+# Alert when shedding load
+@load_shedder.events.on("request_shed")
+async def on_shed(event):
+    print(f"⚠️ Request shed - system overloaded!")
+    print(f"Active: {event.metadata['active_requests']}")
+    print(f"CPU: {event.metadata.get('cpu_percent', 'N/A')}%")
+    await send_alert("Load shedding active - system under pressure")
+```
+
+**Polling Metrics**
+
+```python
+# For dashboards
+stats = load_shedder.get_stats()
+print(f"Active requests: {stats['active_requests']}/{stats['max_requests']}")
+print(f"Total shed: {stats['total_shed']}")
+print(f"Shed rate: {stats['shed_rate']:.2%}")
+```
+
+</details>
+
 ### Backpressure Management
 
 Control flow in async processing pipelines using water marks:
@@ -586,6 +665,40 @@ async def process_item(item):
     await asyncio.sleep(0.1)
     return item
 ```
+
+<details>
+<summary><b>🔍 Monitoring Backpressure</b></summary>
+
+**Event-Driven Monitoring**
+
+Track backpressure state and flow control:
+
+```python
+from aioresilience import BackpressureManager
+
+backpressure = BackpressureManager(
+    max_pending=1000,
+    high_water_mark=800,
+    low_water_mark=200
+)
+
+# Monitor backpressure activation
+@backpressure.events.on("backpressure_high")
+async def on_high(event):
+    pending = event.metadata['pending_count']
+    high_mark = event.metadata['high_water_mark']
+    print(f"⚠️ High backpressure: {pending} pending (threshold: {high_mark})")
+    await signal_upstream_to_slow_down()
+
+# Monitor backpressure relief
+@backpressure.events.on("backpressure_low")
+async def on_low(event):
+    pending = event.metadata['pending_count']
+    print(f"✅ Backpressure relieved: {pending} pending")
+    await signal_upstream_to_resume()
+```
+
+</details>
 
 ### Adaptive Concurrency Limiting
 
@@ -625,6 +738,46 @@ print(f"Active requests: {stats['active_count']}")
 ```
 
 > **Note:** The AIMD algorithm increases the limit linearly on success and decreases it exponentially on failure, similar to TCP congestion control.
+
+<details>
+<summary><b>🔍 Monitoring Adaptive Concurrency</b></summary>
+
+**Event-Driven Monitoring**
+
+Track concurrency limit adjustments:
+
+```python
+from aioresilience import AdaptiveConcurrencyLimiter
+
+limiter = AdaptiveConcurrencyLimiter(initial_limit=100)
+
+# Monitor limit increases
+@limiter.events.on("limit_increased")
+async def on_increase(event):
+    new_limit = event.metadata['new_limit']
+    old_limit = event.metadata['old_limit']
+    print(f"📈 Concurrency limit increased: {old_limit} → {new_limit}")
+
+# Monitor limit decreases
+@limiter.events.on("limit_decreased")
+async def on_decrease(event):
+    new_limit = event.metadata['new_limit']
+    old_limit = event.metadata['old_limit']
+    print(f"📉 Concurrency limit decreased: {old_limit} → {new_limit}")
+    await send_alert("System experiencing failures - concurrency reduced")
+```
+
+**Polling Metrics**
+
+```python
+# For dashboards
+stats = limiter.get_stats()
+print(f"Current limit: {stats['current_limit']}")
+print(f"Active: {stats['active_count']}/{stats['current_limit']}")
+print(f"Success rate: {stats['success_rate']:.2%}")
+```
+
+</details>
 
 ### Retry Pattern
 
@@ -693,6 +846,39 @@ policy = RetryPolicies.conservative()
 policy = RetryPolicies.network()
 ```
 
+<details>
+<summary><b>🔍 Monitoring Retry Attempts</b></summary>
+
+**Event-Driven Monitoring**
+
+Track retry attempts, successes, and exhaustion in real-time:
+
+```python
+from aioresilience import RetryPolicy
+
+policy = RetryPolicy(max_attempts=3)
+
+# Monitor each retry attempt
+@policy.events.on("retry_attempt")
+async def on_retry(event):
+    print(f"Retry attempt {event.metadata['attempt']}/{event.metadata['max_attempts']}")
+    print(f"Delay: {event.metadata['delay']}s")
+
+# Celebrate success after retries
+@policy.events.on("retry_success")
+async def on_success(event):
+    attempts = event.metadata['attempt']
+    print(f"✅ Success after {attempts} attempts!")
+
+# Alert when all retries exhausted
+@policy.events.on("retry_exhausted")
+async def on_exhausted(event):
+    print(f"❌ All {event.metadata['max_attempts']} retries failed")
+    await send_alert("Retry exhausted for critical operation")
+```
+
+</details>
+
 ### Timeout Pattern
 
 Set maximum execution time for async operations:
@@ -745,6 +931,33 @@ async def process_request():
 # Or use convenience function
 result = await with_deadline(fetch_data, deadline)
 ```
+
+<details>
+<summary><b>🔍 Monitoring Timeouts</b></summary>
+
+**Event-Driven Monitoring**
+
+Track timeout events and successful completions:
+
+```python
+from aioresilience import TimeoutManager
+
+manager = TimeoutManager(timeout=5.0)
+
+# Monitor successful completions
+@manager.events.on("timeout_success")
+async def on_success(event):
+    duration = event.metadata['duration']
+    print(f"✅ Completed in {duration:.2f}s (within {event.metadata['timeout']}s limit)")
+
+# Alert on timeouts
+@manager.events.on("timeout_exceeded")
+async def on_timeout(event):
+    print(f"⏱️ Operation timed out after {event.metadata['timeout']}s")
+    await send_alert(f"Timeout exceeded for {event.pattern_name}")
+```
+
+</details>
 
 ### Bulkhead Pattern
 
@@ -820,6 +1033,45 @@ await db_bulkhead.execute(query_db)
 await cache_bulkhead.execute(get_cache)
 ```
 
+<details>
+<summary><b>🔍 Monitoring Bulkhead</b></summary>
+
+**Event-Driven Monitoring**
+
+Track bulkhead capacity and rejections:
+
+```python
+from aioresilience import Bulkhead
+
+bulkhead = Bulkhead(max_concurrent=10, max_waiting=20, name="database")
+
+# Monitor accepted requests
+@bulkhead.events.on("bulkhead_accepted")
+async def on_accepted(event):
+    active = event.metadata['active_count']
+    max_concurrent = event.metadata['max_concurrent']
+    print(f"Request accepted ({active}/{max_concurrent} slots used)")
+
+# Alert on rejections
+@bulkhead.events.on("bulkhead_rejected")
+async def on_rejected(event):
+    print(f"⚠️ Request rejected - bulkhead full!")
+    print(f"Active: {event.metadata['active_count']}, Waiting: {event.metadata['waiting_count']}")
+    await send_alert("Bulkhead capacity exceeded")
+```
+
+**Polling Metrics**
+
+```python
+# For dashboards and health checks
+metrics = bulkhead.get_metrics()
+print(f"Current active: {metrics['current_active']}/{metrics['max_concurrent']}")
+print(f"Peak active: {metrics['peak_active']}")
+print(f"Total rejected: {metrics['rejected_requests']}")
+```
+
+</details>
+
 ### Fallback Pattern
 
 Provide alternative responses when operations fail:
@@ -892,6 +1144,34 @@ async def get_user(user_id: str):
 # Tries: primary API → cache → backup API → default value
 user = await get_user("123")
 ```
+
+<details>
+<summary><b>🔍 Monitoring Fallback</b></summary>
+
+**Event-Driven Monitoring**
+
+Track when fallback values are used:
+
+```python
+from aioresilience import fallback
+
+@fallback({"status": "unavailable"})
+async def get_service_status():
+    # ... implementation ...
+    pass
+
+# Get notified when fallback is triggered
+from aioresilience import Fallback
+
+fallback_handler = Fallback(fallback_value={"default": "data"})
+
+@fallback_handler.events.on("fallback_triggered")
+async def on_fallback(event):
+    print(f"⚠️ Fallback triggered due to: {event.metadata.get('error_type')}")
+    await send_alert("Primary service failed, using fallback")
+```
+
+</details>
 
 #### Combining Patterns
 
