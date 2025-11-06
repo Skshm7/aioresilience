@@ -6,11 +6,14 @@
 
 ## Introduction
 
-aioresilience is a lightweight fault tolerance library designed for Python's asyncio ecosystem.
-aioresilience provides higher-order functions (decorators) to enhance any async function, 
-lambda expression or coroutine with a Circuit Breaker, Rate Limiter, Load Shedder, Backpressure Manager or Adaptive Concurrency Limiter.
-You can stack more than one decorator on any async function or coroutine.
-The advantage is that you have the choice to select the decorators you need and nothing else.
+aioresilience is a comprehensive fault tolerance library for Python's asyncio ecosystem, providing 9 resilience patterns with a powerful event system for monitoring.
+
+**Core Capabilities:**
+- **9 Resilience Patterns**: Circuit Breaker, Retry, Timeout, Bulkhead, Fallback, Rate Limiter, Load Shedder, Backpressure, and Adaptive Concurrency
+- **Event-Driven Observability**: Local and global event handlers for comprehensive monitoring
+- **Decorator & Context Manager APIs**: Flexible integration styles - use decorators, context managers, or direct calls
+- **Composable**: Stack multiple patterns on any async function
+- **Framework Integrations**: First-class support for FastAPI, Sanic, and aiohttp
 
 aioresilience requires Python 3.9+.
 
@@ -146,45 +149,6 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for detailed integration guides.
 | **Adaptive Concurrency** | Auto-adjusts concurrency limits | Dynamically adjust concurrency based on success rate using AIMD algorithm. Similar to TCP congestion control - additive increase, multiplicative decrease. |
 
 *Above table is inspired by [Polly: resilience policies](https://github.com/App-vNext/Polly#resilience-policies) and [resilience4j](https://github.com/resilience4j/resilience4j).*
-
-## Event System
-
-aioresilience includes a comprehensive event system for monitoring and observability. All resilience patterns emit events that you can subscribe to:
-
-**Key Features:**
-- **Local Handlers** - Subscribe to events from specific pattern instances
-- **Global Event Bus** - Centralized event handling across all patterns
-- **Wildcard Subscriptions** - Listen to all events with `"*"` handlers
-- **Thread-Safe** - Safe for concurrent async operations
-- **Rich Event Data** - Detailed context including timestamps, pattern state, and metadata
-
-**Event Types:**
-- Circuit Breaker: `STATE_CHANGE`, `CALL_SUCCESS`, `CALL_FAILURE`, `CIRCUIT_RESET`
-- Retry: `RETRY_ATTEMPT`, `RETRY_SUCCESS`, `RETRY_EXHAUSTED`
-- Timeout: `TIMEOUT_SUCCESS`, `TIMEOUT_OCCURRED`
-- Fallback: `PRIMARY_FAILED`, `FALLBACK_EXECUTED`
-- Bulkhead: `SLOT_ACQUIRED`, `SLOT_RELEASED`, `BULKHEAD_FULL`
-- Rate Limiter: `REQUEST_ALLOWED`, `REQUEST_REJECTED`
-- Load Shedder: `REQUEST_ACCEPTED`, `REQUEST_SHED`, `THRESHOLD_EXCEEDED`
-
-**Example:**
-```python
-from aioresilience import CircuitBreaker, global_bus
-
-# Local event handler
-circuit = CircuitBreaker(name="api")
-
-@circuit.events.on("state_change")
-async def on_state_change(event):
-    print(f"Circuit {event.pattern_name}: {event.old_state} → {event.new_state}")
-
-# Global event bus
-@global_bus.on("*")
-async def log_all_events(event):
-    print(f"{event.pattern_type}: {event.event_type} from {event.pattern_name}")
-```
-
-See [examples/events_example.py](examples/events_example.py) for complete examples.
 
 ## Logging Configuration
 
@@ -905,7 +869,7 @@ See [INTEGRATIONS.md](INTEGRATIONS.md) for comprehensive guides.
 
 ### FastAPI Integration
 
-FastAPI provides **7 middleware** with full configurability:
+FastAPI provides modular middleware and decorators with full configurability:
 
 ```python
 from fastapi import FastAPI
@@ -915,10 +879,9 @@ from aioresilience.integrations.fastapi import (
     LoadSheddingMiddleware,
     TimeoutMiddleware,
     BulkheadMiddleware,
-    FallbackMiddleware,      # NEW
-    RetryMiddleware,         # NEW (limited - see note below)
-    ResilienceMiddleware,    # Composite
-    retry_route,             # NEW - Decorator for true retry behavior
+    FallbackMiddleware,
+    ResilienceMiddleware,    # Composite - combines multiple patterns
+    retry_route,             # Route decorator (recommended for retry logic)
 )
 
 app = FastAPI()
@@ -952,22 +915,18 @@ app.add_middleware(
     status_code=408,
 )
 
-# Fallback - NEW
+# Fallback
 app.add_middleware(
     FallbackMiddleware,
     fallback_response={"status": "degraded", "data": []},
     log_errors=True,
 )
 
-# Retry - Use route-level decorator (recommended)
-# Note: RetryMiddleware has limitations due to Starlette's call_next() restrictions
-# For true retry behavior, use the decorator on specific routes
-from aioresilience.integrations.fastapi import retry_route
-
+# Retry - Use route-level decorator (recommended over middleware)
 @app.get("/api/data")
-@retry_route(max_attempts=3, initial_delay=1.0)
+@retry_route(RetryPolicy(max_attempts=3, initial_delay=1.0))
 async def get_data():
-    # Will retry on failure
+    # Automatic retry on failure with exponential backoff
     return {"data": "..."}
 ```
 
@@ -1275,6 +1234,7 @@ aioresilience follows a modular architecture with minimal required dependencies:
 ```
 aioresilience/
 ├── __init__.py                  # Main exports
+├── logging.py                   # Logging configuration utilities (no dependencies)
 ├── events/                      # Event system (no dependencies)
 │   ├── __init__.py
 │   ├── emitter.py              # Local event handlers per pattern
@@ -1299,13 +1259,19 @@ aioresilience/
     ├── __init__.py
     ├── fastapi/                 # FastAPI integration (requires: fastapi)
     │   ├── __init__.py
-    │   ├── load_shedding.py
     │   ├── circuit_breaker.py
+    │   ├── load_shedding.py
     │   ├── timeout.py
     │   ├── bulkhead.py
+    │   ├── retry.py
+    │   ├── fallback.py
+    │   ├── backpressure.py
+    │   ├── adaptive_concurrency.py
     │   ├── composite.py         # Composite resilience middleware
+    │   ├── decorators.py        # Route-level decorators (retry_route, etc.)
     │   ├── dependencies.py      # Dependency injection utilities
-    │   └── utils.py
+    │   ├── utils.py
+    │   └── README.md
     ├── sanic/                   # Sanic integration (requires: sanic)
     │   ├── __init__.py
     │   ├── decorators.py
